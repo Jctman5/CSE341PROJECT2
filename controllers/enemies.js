@@ -22,23 +22,31 @@ const getSingle = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 const createEnemy = async (req, res) => {
-    const { name, race, class: className, health, attack, inventory } = req.body;
-
-    if (!name || !race || !className || health == null || attack == null) {
-        return res.status(400).json({ error: "name, race, class, health, attack, and inventory are all required." });
-    }
-
-    const enemy = {
-        name,
-        race,
-        class: className,
-        health: Number(health),
-        attack: Number(attack),
-        inventory
-    };
-
     try {
+        const { name, race, class: className, inventory } = req.body;
+        const health = Number(req.body.health);
+        const attack = Number(req.body.attack);
+
+        if (
+            !name || !race || !className ||
+            req.body.health === undefined || req.body.health === "" ||
+            req.body.attack === undefined || req.body.attack === "" ||
+            isNaN(health) || isNaN(attack)
+        ) {
+            return res.status(400).json({ error: "name, race, class are required, and health/attack must be valid numbers." });
+        }
+
+        const enemy = {
+            name,
+            race,
+            class: className,
+            health,
+            attack,
+            inventory
+        };
+
         const response = await mongodb.getDatabase().db().collection("enemies").insertOne(enemy);
         if (response.acknowledged) {
             res.status(201).json({ id: response.insertedId });
@@ -49,21 +57,29 @@ const createEnemy = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 const updateEnemy = async (req, res) => {
     try {
         const enemyId = new ObjectId(req.params.id);
-        const { name, race, class: className, health, attack, inventory } = req.body;
+        const { name, race, class: className, inventory } = req.body;
+        const health = Number(req.body.health);
+        const attack = Number(req.body.attack);
 
-        if (!name || !race || !className || health == null || attack == null || inventory == null) {
-            return res.status(400).json({ error: "firstName, lastName, race, class, health, attack, and inventory are all required." });
+        if (
+            !name || !race || !className ||
+            req.body.health === undefined || req.body.health === "" ||
+            req.body.attack === undefined || req.body.attack === "" ||
+            isNaN(health) || isNaN(attack)
+        ) {
+            return res.status(400).json({ error: "name, race, class are required, and health/attack must be valid numbers." });
         }
 
         const enemy = {
             name,
             race,
             class: className,
-            health: Number(health),
-            attack: Number(attack),
+            health,
+            attack,
             inventory
         };
 
@@ -93,6 +109,7 @@ const deleteEnemy = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 module.exports = {
     getSingle,
     getAll,

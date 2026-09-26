@@ -22,24 +22,32 @@ const getSingle = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 const createPlayer = async (req, res) => {
-    const { firstName, lastName, race, class: className, health, attack, inventory } = req.body;
-
-    if (!firstName || !lastName || !race || !className || health == null || attack == null || inventory == null) {
-        return res.status(400).json({ error: "firstName, lastName, race, class, health, attack, and inventory are all required." });
-    }
-
-    const player = {
-        firstName,
-        lastName,
-        race,
-        class: className,
-        health: Number(health),
-        attack: Number(attack),
-        inventory
-    };
-
     try {
+        const { firstName, lastName, race, class: className, inventory } = req.body;
+        const health = Number(req.body.health);
+        const attack = Number(req.body.attack);
+
+        if (
+            !firstName || !lastName || !race || !className ||
+            req.body.health === undefined || req.body.health === "" ||
+            req.body.attack === undefined || req.body.attack === "" ||
+            isNaN(health) || isNaN(attack)
+        ) {
+            return res.status(400).json({ error: "firstName, lastName, race, class are required, and health/attack must be valid numbers." });
+        }
+
+        const player = {
+            firstName,
+            lastName,
+            race,
+            class: className,
+            health,
+            attack,
+            inventory
+        };
+
         const response = await mongodb.getDatabase().db().collection("players").insertOne(player);
         if (response.acknowledged) {
             res.status(201).json({ id: response.insertedId });
@@ -50,13 +58,21 @@ const createPlayer = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 const updatePlayer = async (req, res) => {
     try {
         const playerId = new ObjectId(req.params.id);
-        const { firstName, lastName, race, class: className, health, attack, inventory } = req.body;
+        const { firstName, lastName, race, class: className, inventory } = req.body;
+        const health = Number(req.body.health);
+        const attack = Number(req.body.attack);
 
-        if (!firstName || !lastName || !race || !className || health == null || attack == null || inventory == null) {
-            return res.status(400).json({ error: "firstName, lastName, race, class, health, attack and inventory are all required." });
+        if (
+            !firstName || !lastName || !race || !className ||
+            req.body.health === undefined || req.body.health === "" ||
+            req.body.attack === undefined || req.body.attack === "" ||
+            isNaN(health) || isNaN(attack)
+        ) {
+            return res.status(400).json({ error: "firstName, lastName, race, class are required, and health/attack must be valid numbers." });
         }
 
         const player = {
@@ -64,8 +80,8 @@ const updatePlayer = async (req, res) => {
             lastName,
             race,
             class: className,
-            health: Number(health),
-            attack: Number(attack),
+            health,
+            attack,
             inventory
         };
 
@@ -95,6 +111,7 @@ const deletePlayer = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 module.exports = {
     getSingle,
     getAll,
