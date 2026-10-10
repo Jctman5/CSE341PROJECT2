@@ -1,28 +1,51 @@
+require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
 const mongodb = require("./data/database");
+const passport = require("passport");
+const session = require("express-session");
+const GithubStrategy = require("passport-github2").Strategy;
+const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 3000;
-const dns = require('dns');
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-app.use(bodyParser.json());
-app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Z-Key"
-    );
-    res.setHeader("Access-Control-AllowMethods", "GET, POST, PUT, DELETE, OPTIONS");
-    next();
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(cors());
+
+passport.use(new GithubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: process.env.CALLBACK_URL
+  },
+  function(accessToken, refreshToken, profile, done) {
+    return done(null, profile);
+}));
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
+app.get("/", (req, res) => {
+    res.send(req.session.user !== undefined ? `Logged in as ${req.session.user.username}` : "Logged Out");
 });
-app.use('/', require("./routes"));
+app.get("/login", passport.authenticate("github"));
+app.get("/github/callback", passport.authenticate("github", { failureRedirect: "/" }), (req, res) => {
+    req.session.user = req.user;
+    res.redirect("/");
+});
 
+app.use("/", require("./routes"));
 
-mongodb.initDb((err) =>{
-    if(err) {
+mongodb.initDb((err) => {
+    if (err) {
         console.log(err);
-    }
-    else{
-        app.listen(port, () => {console.log(`Database is listening and running on port ${port}`)});
+    } else {
+        app.listen(port, () => { console.log(`Database is listening and running on port ${port}`); });
     }
 });
